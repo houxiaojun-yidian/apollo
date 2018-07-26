@@ -1,5 +1,6 @@
 package com.ctrip.framework.apollo.adminservice.controller;
 
+import com.ctrip.framework.apollo.common.http.MultiResponseEntity;
 import com.google.common.base.Joiner;
 import com.google.gson.Gson;
 
@@ -89,6 +90,12 @@ public class ReleaseControllerTest extends AbstractControllerTest {
     Assert.assertEquals("someAppId", release.getAppId());
     Assert.assertEquals("default", release.getClusterName());
     Assert.assertEquals("application", release.getNamespaceName());
+
+//    ResponseEntity<MultiResponseEntity> multiReleasesResponse = restTemplate.postForEntity(
+//            "http://localhost:" + port + "/apps/" + app.getAppId() +
+//                    "/namespaces/" + namespace.getNamespaceName() + "/multiReleases",
+//            entity, MultiResponseEntity.class);
+//    Assert.assertEquals(HttpStatus.OK, multiReleasesResponse.getStatusCode());
 
     Map<String, String> configurations = new HashMap<String, String>();
     configurations.put("k1", "v1");
