@@ -10,6 +10,8 @@ public class OpenItemDTO extends BaseDTO {
 
   private String comment;
 
+  private boolean isRelease;
+
   public String getKey() {
     return key;
   }
@@ -32,5 +34,13 @@ public class OpenItemDTO extends BaseDTO {
 
   public void setComment(String comment) {
     this.comment = comment;
+  }
+
+  public boolean isRelease() {
+    return isRelease;
+  }
+
+  public void setRelease(boolean release) {
+    isRelease = release;
   }
 }

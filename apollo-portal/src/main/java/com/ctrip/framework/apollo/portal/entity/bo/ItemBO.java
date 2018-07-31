@@ -48,6 +48,4 @@ public  class ItemBO {
     public void setNewValue(String newValue) {
       this.newValue = newValue;
     }
-
-
-  }
+}

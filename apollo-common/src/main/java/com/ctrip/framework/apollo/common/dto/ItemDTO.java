@@ -15,6 +15,8 @@ public class ItemDTO extends BaseDTO{
 
   private int lineNum;
 
+  private boolean isRelease;
+
   public ItemDTO() {
 
   }
@@ -25,6 +27,8 @@ public class ItemDTO extends BaseDTO{
     this.comment = comment;
     this.lineNum = lineNum;
   }
+
+
 
   public long getId() {
     return id;
@@ -74,4 +78,11 @@ public class ItemDTO extends BaseDTO{
     this.lineNum = lineNum;
   }
 
+  public boolean isRelease() {
+    return isRelease;
+  }
+
+  public void setRelease(boolean release) {
+    isRelease = release;
+  }
 }

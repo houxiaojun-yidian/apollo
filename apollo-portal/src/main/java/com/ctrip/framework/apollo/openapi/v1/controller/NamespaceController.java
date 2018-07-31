@@ -84,6 +84,7 @@ public class NamespaceController {
     return OpenApiBeanUtils.transformToOpenAppNamespaceDTO(createdAppNamespace);
   }
 
+
   @RequestMapping(value = "/openapi/v1/envs/{env}/apps/{appId}/clusters/{clusterName}/namespaces", method = RequestMethod.GET)
   public List<OpenNamespaceDTO> findNamespaces(@PathVariable String appId, @PathVariable String env,
                                                @PathVariable String clusterName) {

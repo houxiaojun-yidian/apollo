@@ -275,9 +275,14 @@ public class NamespaceService {
   private ItemBO transformItem2BO(ItemDTO itemDTO, Map<String, String> releaseItems) {
     String key = itemDTO.getKey();
     ItemBO itemBO = new ItemBO();
-    itemBO.setItem(itemDTO);
     String newValue = itemDTO.getValue();
     String oldValue = releaseItems.get(key);
+    if (oldValue !=null){
+      itemDTO.setRelease(true);
+    }else {
+      itemDTO.setRelease(false);
+    }
+    itemBO.setItem(itemDTO);
     //new item or modified
     if (!StringUtils.isEmpty(key) && (oldValue == null || !newValue.equals(oldValue))) {
       itemBO.setModified(true);
