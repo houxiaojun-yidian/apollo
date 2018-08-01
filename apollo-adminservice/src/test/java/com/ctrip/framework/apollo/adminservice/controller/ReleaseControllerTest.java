@@ -91,11 +91,11 @@ public class ReleaseControllerTest extends AbstractControllerTest {
     Assert.assertEquals("default", release.getClusterName());
     Assert.assertEquals("application", release.getNamespaceName());
 
-//    ResponseEntity<MultiResponseEntity> multiReleasesResponse = restTemplate.postForEntity(
-//            "http://localhost:" + port + "/apps/" + app.getAppId() +
-//                    "/namespaces/" + namespace.getNamespaceName() + "/multiReleases",
-//            entity, MultiResponseEntity.class);
-//    Assert.assertEquals(HttpStatus.OK, multiReleasesResponse.getStatusCode());
+    ResponseEntity<MultiResponseEntity> multiReleasesResponse = restTemplate.postForEntity(
+            "http://localhost:" + port + "/apps/" + app.getAppId() +
+                    "/namespaces/" + namespace.getNamespaceName() + "/multiReleases",
+            entity, MultiResponseEntity.class);
+    Assert.assertEquals(HttpStatus.OK, multiReleasesResponse.getStatusCode());
 
     Map<String, String> configurations = new HashMap<String, String>();
     configurations.put("k1", "v1");
