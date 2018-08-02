@@ -73,9 +73,9 @@ public class ReleaseController {
   }
 
   /**
-   * 批量发布
+   * 全环境发布
    * 因为我们会有这种场景：对于一个namespace的改动，要同步到当前appid下的全部env、全部cluster下的各个同名namespace。然后再把这些namespace逐个都发布掉。
-   * 由于批量同步功能是已有的，但是批量发布功能并没有，所以这里支持了一下
+   * 由于批量同步功能是已有的，但是全环境发布功能并没有，所以这里支持了一下
    */
   @PreAuthorize(value = "@permissionValidator.hasReleaseNamespacePermission(#appId, #namespaceName)")
   @RequestMapping(value = "/apps/{appId}/namespaces/{namespaceName}/multiReleases", method = RequestMethod.POST)

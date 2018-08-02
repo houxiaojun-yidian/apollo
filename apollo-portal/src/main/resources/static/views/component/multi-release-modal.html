@@ -5,8 +5,8 @@
             <div class="modal-header panel-primary">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
                         aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title" ng-show="!toReleaseNamespace.isBranch">批量发布
-                    <small>(只有发布过的配置才会被客户端获取到，此次发布只会作用于当前环境:{{env}})</small>
+                <h4 class="modal-title" ng-show="!toReleaseNamespace.isBranch">全环境发布
+                    <small>(只有发布过的配置才会被客户端获取到，此次发布会作用于所有环境)</small>
                 </h4>
 
             </div>
@@ -256,7 +256,7 @@
                 <button type="submit" class="btn btn-primary"
                         ng-disabled="releaseForm.$invalid || releaseBtnDisabled
                         || (toReleaseNamespace.isBranch && toReleaseNamespace.mergeAndPublish && toReleaseNamespace.branchItems.length == 0)">
-                    批量发布
+                    全环境发布
                 </button>
             </div>
         </div>
