@@ -21,7 +21,7 @@ function multiReleaseModalDirective(toastr, AppUtil, EventManager, ReleaseServic
             scope.releaseComment = '';
             scope.isEmergencyPublish = false;
             
-            EventManager.subscribe(EventManager.EventType.PUBLISH_NAMESPACE,
+            EventManager.subscribe(EventManager.EventType.MULTI_PUBLISH_NAMESPACE,
                                    function (context) {
 
                                        var namespace = context.namespace;

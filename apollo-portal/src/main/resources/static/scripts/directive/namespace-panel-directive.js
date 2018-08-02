@@ -831,7 +831,7 @@ function directive($window, toastr, AppUtil, EventManager, PermissionService, Na
                     namespace.mergeAndPublish = false;
                 }
 
-                EventManager.emit(EventManager.EventType.PUBLISH_NAMESPACE,
+                EventManager.emit(EventManager.EventType.MULTI_PUBLISH_NAMESPACE,
                     {
                         namespace: namespace
                     });
