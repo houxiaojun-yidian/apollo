@@ -18,6 +18,10 @@ appService.service('ReleaseService', ['$resource', '$q', function ($resource, $q
             method: 'POST',
             url: '/apps/:appId/envs/:env/clusters/:clusterName/namespaces/:namespaceName/releases'
         },
+        multi_release: {
+            method: 'POST',
+            url: '/apps/:appId/namespaces/:namespaceName/multiReleases'
+        },
         gray_release: {
             method: 'POST',
             url: '/apps/:appId/envs/:env/clusters/:clusterName/namespaces/:namespaceName/branches/:branchName/releases'
@@ -40,6 +44,23 @@ appService.service('ReleaseService', ['$resource', '$q', function ($resource, $q
                              releaseComment: comment,
                              isEmergencyPublish: isEmergencyPublish
                          }, function (result) {
+            d.resolve(result);
+        }, function (result) {
+            d.reject(result);
+        });
+        return d.promise;
+    }
+
+    function createMultiRelease(appId, namespaceName, releaseTitle, comment, isEmergencyPublish) {
+        var d = $q.defer();
+        resource.multi_release({
+            appId: appId,
+            namespaceName: namespaceName
+        }, {
+            releaseTitle: releaseTitle,
+            releaseComment: comment,
+            isEmergencyPublish: isEmergencyPublish
+        }, function (result) {
             d.resolve(result);
         }, function (result) {
             d.reject(result);
@@ -155,6 +176,7 @@ appService.service('ReleaseService', ['$resource', '$q', function ($resource, $q
 
     return {
         publish: createRelease,
+        multiPublish: createMultiRelease,
         grayPublish: createGrayRelease,
         findAllRelease: findAllReleases,
         findActiveReleases: findActiveReleases,

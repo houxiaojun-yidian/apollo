@@ -15,6 +15,7 @@ function releaseModalDirective(toastr, AppUtil, EventManager, ReleaseService, Na
 
             scope.switchReleaseChangeViewType = switchReleaseChangeViewType;
             scope.release = release;
+            scope.multiPublish = multiPublish;
 
             scope.releaseBtnDisabled = false;
             scope.releaseChangeViewType = 'change';
@@ -69,6 +70,33 @@ function releaseModalDirective(toastr, AppUtil, EventManager, ReleaseService, Na
                                           {
                                               namespace: scope.toReleaseNamespace
                                           })
+
+                    }, function (result) {
+                        scope.releaseBtnDisabled = false;
+                        toastr.error(AppUtil.errorMsg(result), "发布失败");
+
+                    }
+                );
+
+            }
+
+            function multiPublish() {
+                scope.releaseBtnDisabled = true;
+                ReleaseService.multiPublish(scope.appId,
+                    scope.toReleaseNamespace.baseInfo.namespaceName,
+                    scope.toReleaseNamespace.releaseTitle,
+                    scope.releaseComment,
+                    scope.isEmergencyPublish).then(
+                    function (result) {
+                        AppUtil.hideModal('#releaseModal');
+                        toastr.success("发布成功");
+
+                        scope.releaseBtnDisabled = false;
+
+                        EventManager.emit(EventManager.EventType.REFRESH_NAMESPACE,
+                            {
+                                namespace: scope.toReleaseNamespace
+                            })
 
                     }, function (result) {
                         scope.releaseBtnDisabled = false;

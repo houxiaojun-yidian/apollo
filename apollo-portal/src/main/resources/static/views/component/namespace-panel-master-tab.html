@@ -38,6 +38,14 @@
                     <img src="img/release.png">
                     发布
                 </button>
+                <button type="button" class="btn btn-success btn-sm"
+                        data-tooltip="tooltip" data-placement="bottom" title="发布配置"
+                        ng-show="(namespace.hasReleasePermission || namespace.hasModifyPermission)"
+                        ng-disabled="namespace.isTextEditing"
+                        ng-click="multiPublish(namespace)">
+                    <img src="img/release.png">
+                    批量发布
+                </button>
                 <button type="button" class="btn btn-default btn-sm"
                         data-tooltip="tooltip" data-placement="bottom" title="回滚已发布配置"
                         ng-show="namespace.hasReleasePermission"
