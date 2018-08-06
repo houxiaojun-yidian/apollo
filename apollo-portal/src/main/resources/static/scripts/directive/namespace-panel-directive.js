@@ -58,6 +58,7 @@ function directive($window, toastr, AppUtil, EventManager, PermissionService, Na
             scope.rollback = rollback;
 
             scope.publish = publish;
+            scope.multiPublish = multiPublish;
             scope.mergeAndPublish = mergeAndPublish;
             scope.addRuleItem = addRuleItem;
             scope.editRuleItem = editRuleItem;
@@ -809,6 +810,31 @@ function directive($window, toastr, AppUtil, EventManager, PermissionService, Na
                                   {
                                       namespace: namespace
                                   });
+            }
+
+            //multi release
+            function multiPublish(namespace) {
+
+                if (!namespace.hasReleasePermission) {
+                    AppUtil.showModal('#releaseNoPermissionDialog');
+                    return;
+                } else if (namespace.lockOwner && scope.user == namespace.lockOwner) {
+                    //can not publish if config modified by himself
+                    EventManager.emit(EventManager.EventType.PUBLISH_DENY, {
+                        namespace: namespace,
+                        mergeAndPublish: false
+                    });
+                    return;
+                }
+
+                if (namespace.isBranch) {
+                    namespace.mergeAndPublish = false;
+                }
+
+                EventManager.emit(EventManager.EventType.MULTI_PUBLISH_NAMESPACE,
+                    {
+                        namespace: namespace
+                    });
             }
 
             function mergeAndPublish(branch) {

@@ -1,6 +1,15 @@
 package com.ctrip.framework.apollo.adminservice.controller;
 
 
+import com.ctrip.framework.apollo.biz.entity.Cluster;
+import com.ctrip.framework.apollo.biz.service.ClusterService;
+import com.ctrip.framework.apollo.common.dto.ClusterDTO;
+import com.ctrip.framework.apollo.common.exception.BadRequestException;
+import com.ctrip.framework.apollo.common.http.MultiResponseEntity;
+import com.ctrip.framework.apollo.common.http.RichResponseEntity;
+import com.ctrip.framework.apollo.common.utils.RequestPrecondition;
+import com.ctrip.framework.apollo.core.enums.Env;
+import com.ctrip.framework.apollo.core.utils.StringUtils;
 import com.google.common.base.Splitter;
 
 import com.ctrip.framework.apollo.biz.entity.Namespace;
@@ -19,7 +28,9 @@ import com.ctrip.framework.apollo.common.utils.BeanUtils;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,12 +42,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static com.ctrip.framework.apollo.common.utils.RequestPrecondition.checkModel;
+
 @RestController
 public class ReleaseController {
 
   private static final Splitter RELEASES_SPLITTER = Splitter.on(",").omitEmptyStrings()
       .trimResults();
-
 
   @Autowired
   private ReleaseService releaseService;
@@ -46,7 +58,8 @@ public class ReleaseController {
   private MessageSender messageSender;
   @Autowired
   private NamespaceBranchService namespaceBranchService;
-
+  @Autowired
+  private ClusterService clusterService;
 
   @RequestMapping(value = "/releases/{releaseId}", method = RequestMethod.GET)
   public ReleaseDTO get(@PathVariable("releaseId") long releaseId) {
@@ -121,6 +134,35 @@ public class ReleaseController {
     messageSender.sendMessage(ReleaseMessageKeyGenerator.generate(appId, messageCluster, namespaceName),
                               Topics.APOLLO_RELEASE_TOPIC);
     return BeanUtils.transfrom(ReleaseDTO.class, release);
+  }
+
+  /**
+   * 全环境发布
+   * 因为我们会有这种场景：对于一个namespace的改动，要同步到当前appid下的全部env、全部cluster下的各个同名namespace。然后再把这些namespace逐个都发布掉。
+   * 由于批量同步功能是已有的，但是全环境发布功能并没有，所以这里支持了一下
+   */
+  @Transactional
+  @RequestMapping(path = "/apps/{appId}/namespaces/{namespaceName}/multiReleases", method = RequestMethod.POST)
+  public MultiResponseEntity<ReleaseDTO> multiPublish(@PathVariable("appId") String appId,
+                                                      @PathVariable("namespaceName") String namespaceName,
+                                                      @RequestParam("name") String releaseName,
+                                                      @RequestParam(name = "comment", required = false) String releaseComment,
+                                                      @RequestParam("operator") String operator,
+                                                      @RequestParam(name = "isEmergencyPublish", defaultValue = "false") boolean isEmergencyPublish) {
+
+    MultiResponseEntity<ReleaseDTO> response = MultiResponseEntity.ok();
+
+    List<Cluster> clusterList = clusterService.findClusters(appId);
+    if (CollectionUtils.isEmpty(clusterList)) {
+      return null;
+    }
+    for (Cluster cluster : clusterList) {
+      String clusterName = cluster.getName();
+      ReleaseDTO openReleaseDTO = publish(appId, clusterName, namespaceName, releaseName, releaseComment, operator, isEmergencyPublish);
+
+      response.addResponseEntity(RichResponseEntity.ok(openReleaseDTO));
+    }
+    return response;
   }
 
 
