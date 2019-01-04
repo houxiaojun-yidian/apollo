@@ -1,7 +1,5 @@
 package com.ctrip.framework.apollo.portal.spi.configuration;
 
-import com.google.common.collect.Maps;
-
 import com.ctrip.framework.apollo.common.condition.ConditionalOnMissingProfile;
 import com.ctrip.framework.apollo.portal.component.config.PortalConfig;
 import com.ctrip.framework.apollo.portal.spi.LogoutHandler;
@@ -16,28 +14,41 @@ import com.ctrip.framework.apollo.portal.spi.defaultimpl.DefaultLogoutHandler;
 import com.ctrip.framework.apollo.portal.spi.defaultimpl.DefaultSsoHeartbeatHandler;
 import com.ctrip.framework.apollo.portal.spi.defaultimpl.DefaultUserInfoHolder;
 import com.ctrip.framework.apollo.portal.spi.defaultimpl.DefaultUserService;
+import com.ctrip.framework.apollo.portal.spi.ldap.LdapUserService;
 import com.ctrip.framework.apollo.portal.spi.springsecurity.SpringSecurityUserInfoHolder;
 import com.ctrip.framework.apollo.portal.spi.springsecurity.SpringSecurityUserService;
-
+import com.google.common.collect.Maps;
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.embedded.FilterRegistrationBean;
 import org.springframework.boot.context.embedded.ServletListenerRegistrationBean;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
+import org.springframework.core.env.Environment;
+import org.springframework.ldap.core.ContextSource;
+import org.springframework.ldap.core.LdapOperations;
+import org.springframework.ldap.core.LdapTemplate;
+import org.springframework.ldap.core.support.LdapContextSource;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.ldap.authentication.BindAuthenticator;
+import org.springframework.security.ldap.authentication.LdapAuthenticationProvider;
+import org.springframework.security.ldap.search.FilterBasedLdapUserSearch;
+import org.springframework.security.ldap.userdetails.DefaultLdapAuthoritiesPopulator;
 import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+import org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler;
 
 import javax.servlet.Filter;
+import java.util.Collections;
 import java.util.EventListener;
 import java.util.Map;
 
@@ -258,10 +269,125 @@ public class AuthConfiguration {
   }
 
   /**
+   * spring.profiles.active = ldap
+   */
+  @Configuration
+  @Profile("ldap")
+  @EnableConfigurationProperties(LdapProperties.class)
+  static class SpringSecurityLDAPAuthAutoConfiguration {
+
+    @Autowired
+    private LdapProperties properties;
+
+    @Autowired
+    private Environment environment;
+
+    @Bean
+    @ConditionalOnMissingBean(SsoHeartbeatHandler.class)
+    public SsoHeartbeatHandler ldapSsoHeartbeatHandler() {
+      return new DefaultSsoHeartbeatHandler();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(UserInfoHolder.class)
+    public UserInfoHolder ldapUserInfoHolder() {
+      return new SpringSecurityUserInfoHolder();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(LogoutHandler.class)
+    public LogoutHandler logoutHandler() {
+      return new DefaultLogoutHandler();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(UserService.class)
+    public UserService ldapUserService() {
+      return new LdapUserService();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ContextSource ldapContextSource() {
+      LdapContextSource source = new LdapContextSource();
+      source.setUserDn(this.properties.getUsername());
+      source.setPassword(this.properties.getPassword());
+      source.setAnonymousReadOnly(this.properties.getAnonymousReadOnly());
+      source.setBase(this.properties.getBase());
+      source.setUrls(this.properties.determineUrls(this.environment));
+      /*source.setBaseEnvironmentProperties(
+              Collections.unmodifiableMap(this.properties.getBaseEnvironment()));*/
+      return source;
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(LdapOperations.class)
+    public LdapTemplate ldapTemplate(ContextSource contextSource) {
+      LdapTemplate ldapTemplate = new LdapTemplate(contextSource);
+      ldapTemplate.setIgnorePartialResultException(true);
+      return ldapTemplate;
+    }
+  }
+
+  @Order(99)
+  @Profile("ldap")
+  @Configuration
+  @EnableWebSecurity
+  @EnableGlobalMethodSecurity(prePostEnabled = true)
+  static class SpringSecurityLDAPConfigurer extends WebSecurityConfigurerAdapter {
+
+    @Autowired
+    private LdapProperties ldapProperties;
+    @Autowired
+    private LdapContextSource ldapContextSource;
+
+    @Bean
+    public FilterBasedLdapUserSearch userSearch() {
+      FilterBasedLdapUserSearch filterBasedLdapUserSearch = new FilterBasedLdapUserSearch("",
+              ldapProperties.getSearchFilter(), ldapContextSource);
+      filterBasedLdapUserSearch.setSearchSubtree(true);
+      return filterBasedLdapUserSearch;
+    }
+
+    @Bean
+    public LdapAuthenticationProvider ldapAuthProvider() {
+      BindAuthenticator bindAuthenticator = new BindAuthenticator(ldapContextSource);
+      bindAuthenticator.setUserSearch(userSearch());
+      DefaultLdapAuthoritiesPopulator defaultAuthAutoConfiguration = new DefaultLdapAuthoritiesPopulator(
+              ldapContextSource, null);
+      defaultAuthAutoConfiguration.setIgnorePartialResultException(true);
+      defaultAuthAutoConfiguration.setSearchSubtree(true);
+      LdapAuthenticationProvider ldapAuthenticationProvider = new LdapAuthenticationProvider(
+              bindAuthenticator, defaultAuthAutoConfiguration);
+      return ldapAuthenticationProvider;
+    }
+
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+      http.csrf().disable();
+      http.headers().frameOptions().sameOrigin();
+      http.authorizeRequests()
+              .antMatchers("/openapi/**", "/vendor/**", "/styles/**", "/scripts/**", "/views/**", "/img/**").permitAll()
+              .antMatchers("/**").authenticated();
+      http.formLogin().loginPage("/signin").permitAll().failureUrl("/signin?#/error").and().httpBasic();
+      SimpleUrlLogoutSuccessHandler urlLogoutHandler = new SimpleUrlLogoutSuccessHandler();
+      urlLogoutHandler.setDefaultTargetUrl("/signin?#/logout");
+      http.logout().logoutUrl("/logout").invalidateHttpSession(true).clearAuthentication(true)
+              .logoutSuccessHandler(urlLogoutHandler);
+      http.exceptionHandling().authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint("/signin"));
+    }
+
+    @Override
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+      auth.authenticationProvider(ldapAuthProvider());
+    }
+  }
+
+  /**
    * default profile
    */
   @Configuration
-  @ConditionalOnMissingProfile({"ctrip", "auth"})
+  @ConditionalOnMissingProfile({"ctrip", "auth","ldap"})
   static class DefaultAuthAutoConfiguration {
 
     @Bean
