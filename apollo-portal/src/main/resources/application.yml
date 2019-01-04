@@ -5,13 +5,24 @@ spring:
     active: ${apollo_profile}
   resources:
     cache-period: 3600
-
+  ldap:
+    username:
+    password:
+    base:
+    searchFilter:
+    urls:
+ldap:
+  mapping:
+    objectClass:
+    loginId:
+    userDisplayName:
+    email:
+    filterBase:
 server:
   port: 8080
-  
+
 logging:
   file: /opt/logs/100003173/apollo-portal.log
-
 endpoints:
   health:
     sensitive: false
