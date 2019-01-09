@@ -1,20 +1,20 @@
 #!/bin/sh
 
 # apollo config db info
-apollo_config_db_url=
-apollo_config_db_username=
-apollo_config_db_password=
+apollo_config_db_url=jdbc:mysql://10.103.16.194:3306/ApolloConfigDB?characterEncoding=utf8
+apollo_config_db_username=root
+apollo_config_db_password=123456
 
 # apollo portal db info
-apollo_portal_db_url=
-apollo_portal_db_username=
-apollo_portal_db_password=
+apollo_portal_db_url=jdbc:mysql://10.103.16.194:3306/ApolloPortalDB?characterEncoding=utf8
+apollo_portal_db_username=root
+apollo_portal_db_password=123456
 
 # meta server url, different environments should have different meta server addresses
-dev_meta=
-fat_meta=
-uat_meta=
-pro_meta=
+dev_meta=http://10.103.16.194:8080
+fat_meta=http://10.103.16.194:8080
+uat_meta=http://10.103.16.194:8080
+pro_meta=http://10.103.16.194:8080
 
 META_SERVERS_OPTS="-Ddev_meta=$dev_meta -Dfat_meta=$fat_meta -Duat_meta=$uat_meta -Dpro_meta=$pro_meta"
 
@@ -36,3 +36,10 @@ echo "==== starting to build portal ===="
 mvn clean package -DskipTests -pl apollo-portal -am -Dapollo_profile=github,ldap -Dspring_datasource_url=$apollo_portal_db_url -Dspring_datasource_username=$apollo_portal_db_username -Dspring_datasource_password=$apollo_portal_db_password $META_SERVERS_OPTS
 
 echo "==== building portal finished ===="
+
+echo "==== starting to build client ===="
+
+mvn clean install -DskipTests -pl apollo-client -am $META_SERVERS_OPTS
+
+echo "==== building client finished ===="
+

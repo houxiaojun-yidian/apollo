@@ -4,18 +4,20 @@ spring:
   profiles:
     active: ${apollo_profile}
   ldap:
-    username:
-    password:
-    base:
-    searchFilter:
+    username: "apollo"
+    password: "ngiAt$#^##k66HCr"
+    base: "ou=yidianzixun,dc=yidian-inc,dc=local"
+    searchFilter: "(sAMAccountName={0})"  #用户过滤器，登录的时候用这个过滤器来搜索用户
     urls:
+    - "ldap://ldap.yidian-inc.com:389"
+
 ldap:
-  mapping:
-    objectClass:
-    loginId:
-    userDisplayName:
-    email:
-    filterBase:
+  mapping: # 配置 ldap 属性
+    objectClass: "user" # ldap 用户 objectClass 配置
+    loginId: "SamAccountName" # ldap 用户惟一 id，用来作为登录的 id
+    userDisplayName: "cn" # ldap 用户名，用来作为显示名
+    email: "UserPrincipalName" # ldap 邮箱属性
+    filterBase: "ou=技术部" #查询节点
 server:
   port: 8080
   compression:
