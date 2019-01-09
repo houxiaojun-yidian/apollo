@@ -4,6 +4,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.core.env.Environment;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author xm.lin xm.lin@anxincloud.com
@@ -44,6 +46,11 @@ public class LdapProperties {
    * User search filter
    */
   private String searchFilter;
+
+  /**
+   * LDAP specification settings.
+   */
+  private final Map<String, String> baseEnvironment = new HashMap<>();
 
   public String[] getUrls() {
     return this.urls;
@@ -91,6 +98,10 @@ public class LdapProperties {
 
   public void setSearchFilter(String searchFilter) {
     this.searchFilter = searchFilter;
+  }
+
+  public Map<String, String> getBaseEnvironment() {
+    return this.baseEnvironment;
   }
 
   public String[] determineUrls(Environment environment) {

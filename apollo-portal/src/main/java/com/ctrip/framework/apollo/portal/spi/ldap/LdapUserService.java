@@ -3,6 +3,14 @@ package com.ctrip.framework.apollo.portal.spi.ldap;
 import com.ctrip.framework.apollo.portal.entity.bo.UserInfo;
 import com.ctrip.framework.apollo.portal.spi.UserService;
 import com.google.common.base.Strings;
+import static org.springframework.ldap.query.LdapQueryBuilder.query;
+
+import com.ctrip.framework.apollo.core.utils.StringUtils;
+import com.ctrip.framework.apollo.portal.entity.bo.UserInfo;
+import com.ctrip.framework.apollo.portal.spi.UserService;
+import com.google.common.base.Strings;
+import java.util.Arrays;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.ldap.core.ContextMapper;
@@ -33,8 +41,12 @@ public class LdapUserService implements UserService {
     private String emailAttrName;
     @Value("${ldap.mapping.filterBase}")
     private String filterBase;
+    @Value("#{'${ldap.filter.memberOf:}'.split('\\|')}")
+    private String[] memberOf;
     @Autowired
     private LdapTemplate ldapTemplate;
+
+    private static final String MEMBER_OF_ATTR_NAME = "memberOf";
 
     private ContextMapper<UserInfo> ldapUserInfoMapper = (ctx) -> {
         DirContextAdapter contextAdapter = (DirContextAdapter) ctx;
@@ -45,6 +57,12 @@ public class LdapUserService implements UserService {
         return userInfo;
     };
 
+    /**
+     * 一点资讯的特有实现
+     * TODO 更新之后，check下可用否
+     * by 晓君
+     * @return
+     */
     private ContainerCriteria ldapQueryCriteria() {
         //忽略PartialResultException异常
         ldapTemplate.setIgnorePartialResultException(true);
@@ -53,7 +71,6 @@ public class LdapUserService implements UserService {
                 .where("objectClass").is(objectClassAttrName);
         return criteria;
     }
-
 
     @Override
     public List<UserInfo> searchUsers(String keyword, int offset, int limit) {

@@ -60,6 +60,10 @@ public class AppService {
     return appRepository.findByAppIdIn(appIds);
   }
 
+  public List<App> findByAppIds(Set<String> appIds, Pageable pageable) {
+    return appRepository.findByAppIdIn(appIds, pageable);
+  }
+
   public List<App> findByOwnerName(String ownerName, Pageable page) {
     return appRepository.findByOwnerName(ownerName, page);
   }
@@ -77,7 +81,7 @@ public class AppService {
     app.setDataChangeCreatedBy(username);
     app.setDataChangeLastModifiedBy(username);
 
-    AppDTO appDTO = BeanUtils.transfrom(AppDTO.class, app);
+    AppDTO appDTO = BeanUtils.transform(AppDTO.class, app);
     appAPI.createApp(env, appDTO);
   }
 

@@ -18,12 +18,16 @@ import com.ctrip.framework.apollo.portal.spi.ldap.LdapUserService;
 import com.ctrip.framework.apollo.portal.spi.springsecurity.SpringSecurityUserInfoHolder;
 import com.ctrip.framework.apollo.portal.spi.springsecurity.SpringSecurityUserService;
 import com.google.common.collect.Maps;
-import org.apache.tomcat.jdbc.pool.DataSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.context.embedded.FilterRegistrationBean;
-import org.springframework.boot.context.embedded.ServletListenerRegistrationBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import java.util.Collections;
+import java.util.EventListener;
+import java.util.Map;
+import javax.servlet.Filter;
+import javax.sql.DataSource;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.boot.web.servlet.ServletListenerRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -69,7 +73,8 @@ public class AuthConfiguration {
     @Bean
     public ServletListenerRegistrationBean redisAppSettingListner() {
       ServletListenerRegistrationBean redisAppSettingListener = new ServletListenerRegistrationBean();
-      redisAppSettingListener.setListener(listener("org.jasig.cas.client.credis.CRedisAppSettingListner"));
+      redisAppSettingListener
+          .setListener(listener("org.jasig.cas.client.credis.CRedisAppSettingListner"));
       return redisAppSettingListener;
     }
 
@@ -103,7 +108,8 @@ public class AuthConfiguration {
       filterInitParam.put("/openapi.*", "exclude");
 
       casFilter.setInitParameters(filterInitParam);
-      casFilter.setFilter(filter("com.ctrip.framework.apollo.sso.filter.ApolloAuthenticationFilter"));
+      casFilter
+          .setFilter(filter("com.ctrip.framework.apollo.sso.filter.ApolloAuthenticationFilter"));
       casFilter.addUrlPatterns("/*");
       casFilter.setOrder(2);
 
@@ -123,15 +129,14 @@ public class AuthConfiguration {
       filterInitParam.put("redisClusterName", "casClientPrincipal");
 
       casValidationFilter
-          .setFilter(filter("org.jasig.cas.client.validation.Cas20ProxyReceivingTicketValidationFilter"));
+          .setFilter(
+              filter("org.jasig.cas.client.validation.Cas20ProxyReceivingTicketValidationFilter"));
       casValidationFilter.setInitParameters(filterInitParam);
       casValidationFilter.addUrlPatterns("/*");
       casValidationFilter.setOrder(3);
 
       return casValidationFilter;
-
     }
-
 
     @Bean
     public FilterRegistrationBean assertionHolder() {
@@ -142,7 +147,8 @@ public class AuthConfiguration {
 
       assertionHolderFilter.setInitParameters(filterInitParam);
 
-      assertionHolderFilter.setFilter(filter("com.ctrip.framework.apollo.sso.filter.ApolloAssertionThreadLocalFilter"));
+      assertionHolderFilter.setFilter(
+          filter("com.ctrip.framework.apollo.sso.filter.ApolloAssertionThreadLocalFilter"));
       assertionHolderFilter.addUrlPatterns("/*");
       assertionHolderFilter.setOrder(4);
 
@@ -168,7 +174,6 @@ public class AuthConfiguration {
       } catch (Exception e) {
         throw new RuntimeException("instance filter fail", e);
       }
-
     }
 
     private EventListener listener(String className) {
@@ -191,9 +196,7 @@ public class AuthConfiguration {
     public SsoHeartbeatHandler ctripSsoHeartbeatHandler() {
       return new CtripSsoHeartbeatHandler();
     }
-
   }
-
 
   /**
    * spring.profiles.active = auth
@@ -221,19 +224,27 @@ public class AuthConfiguration {
     }
 
     @Bean
-    public JdbcUserDetailsManager jdbcUserDetailsManager(AuthenticationManagerBuilder auth, DataSource datasource) throws Exception {
-      JdbcUserDetailsManager jdbcUserDetailsManager = auth.jdbcAuthentication().passwordEncoder(new BCryptPasswordEncoder()).dataSource(datasource)
+    public JdbcUserDetailsManager jdbcUserDetailsManager(AuthenticationManagerBuilder auth,
+        DataSource datasource) throws Exception {
+      JdbcUserDetailsManager jdbcUserDetailsManager = auth.jdbcAuthentication()
+          .passwordEncoder(new BCryptPasswordEncoder()).dataSource(datasource)
           .usersByUsernameQuery("select Username,Password,Enabled from `Users` where Username = ?")
-          .authoritiesByUsernameQuery("select Username,Authority from `Authorities` where Username = ?")
+          .authoritiesByUsernameQuery(
+              "select Username,Authority from `Authorities` where Username = ?")
           .getUserDetailsService();
 
       jdbcUserDetailsManager.setUserExistsSql("select Username from `Users` where Username = ?");
-      jdbcUserDetailsManager.setCreateUserSql("insert into `Users` (Username, Password, Enabled) values (?,?,?)");
-      jdbcUserDetailsManager.setUpdateUserSql("update `Users` set Password = ?, Enabled = ? where Username = ?");
+      jdbcUserDetailsManager
+          .setCreateUserSql("insert into `Users` (Username, Password, Enabled) values (?,?,?)");
+      jdbcUserDetailsManager
+          .setUpdateUserSql("update `Users` set Password = ?, Enabled = ? where Username = ?");
       jdbcUserDetailsManager.setDeleteUserSql("delete from `Users` where Username = ?");
-      jdbcUserDetailsManager.setCreateAuthoritySql("insert into `Authorities` (Username, Authority) values (?,?)");
-      jdbcUserDetailsManager.setDeleteUserAuthoritiesSql("delete from `Authorities` where Username = ?");
-      jdbcUserDetailsManager.setChangePasswordSql("update `Users` set Password = ? where Username = ?");
+      jdbcUserDetailsManager
+          .setCreateAuthoritySql("insert into `Authorities` (Username, Authority) values (?,?)");
+      jdbcUserDetailsManager
+          .setDeleteUserAuthoritiesSql("delete from `Authorities` where Username = ?");
+      jdbcUserDetailsManager
+          .setChangePasswordSql("update `Users` set Password = ? where Username = ?");
 
       return jdbcUserDetailsManager;
     }
@@ -259,10 +270,14 @@ public class AuthConfiguration {
     protected void configure(HttpSecurity http) throws Exception {
       http.csrf().disable();
       http.headers().frameOptions().sameOrigin();
-      http.authorizeRequests().antMatchers("/openapi/**", "/vendor/**", "/styles/**", "/scripts/**", "/views/**", "/img/**").permitAll()
-      .antMatchers("/**").hasAnyRole(USER_ROLE);
+      http.authorizeRequests()
+          .antMatchers("/openapi/**", "/vendor/**", "/styles/**", "/scripts/**", "/views/**", "/img/**").permitAll()
+          .antMatchers("/**").hasAnyRole(USER_ROLE);
       http.formLogin().loginPage("/signin").permitAll().failureUrl("/signin?#/error").and().httpBasic();
-      http.logout().invalidateHttpSession(true).clearAuthentication(true).logoutSuccessUrl("/signin?#/logout");
+      SimpleUrlLogoutSuccessHandler urlLogoutHandler = new SimpleUrlLogoutSuccessHandler();
+      urlLogoutHandler.setDefaultTargetUrl("/signin?#/logout");
+      http.logout().logoutUrl("/user/logout").invalidateHttpSession(true).clearAuthentication(true)
+          .logoutSuccessHandler(urlLogoutHandler);
       http.exceptionHandling().authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint("/signin"));
     }
 
@@ -284,13 +299,13 @@ public class AuthConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(SsoHeartbeatHandler.class)
-    public SsoHeartbeatHandler ldapSsoHeartbeatHandler() {
+    public SsoHeartbeatHandler defaultSsoHeartbeatHandler() {
       return new DefaultSsoHeartbeatHandler();
     }
 
     @Bean
     @ConditionalOnMissingBean(UserInfoHolder.class)
-    public UserInfoHolder ldapUserInfoHolder() {
+    public UserInfoHolder springSecurityUserInfoHolder() {
       return new SpringSecurityUserInfoHolder();
     }
 
@@ -302,7 +317,7 @@ public class AuthConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(UserService.class)
-    public UserService ldapUserService() {
+    public UserService springSecurityUserService() {
       return new LdapUserService();
     }
 
@@ -315,8 +330,8 @@ public class AuthConfiguration {
       source.setAnonymousReadOnly(this.properties.getAnonymousReadOnly());
       source.setBase(this.properties.getBase());
       source.setUrls(this.properties.determineUrls(this.environment));
-      /*source.setBaseEnvironmentProperties(
-              Collections.unmodifiableMap(this.properties.getBaseEnvironment()));*/
+      source.setBaseEnvironmentProperties(
+          Collections.unmodifiableMap(this.properties.getBaseEnvironment()));
       return source;
     }
 
@@ -344,7 +359,7 @@ public class AuthConfiguration {
     @Bean
     public FilterBasedLdapUserSearch userSearch() {
       FilterBasedLdapUserSearch filterBasedLdapUserSearch = new FilterBasedLdapUserSearch("",
-              ldapProperties.getSearchFilter(), ldapContextSource);
+          ldapProperties.getSearchFilter(), ldapContextSource);
       filterBasedLdapUserSearch.setSearchSubtree(true);
       return filterBasedLdapUserSearch;
     }
@@ -354,11 +369,11 @@ public class AuthConfiguration {
       BindAuthenticator bindAuthenticator = new BindAuthenticator(ldapContextSource);
       bindAuthenticator.setUserSearch(userSearch());
       DefaultLdapAuthoritiesPopulator defaultAuthAutoConfiguration = new DefaultLdapAuthoritiesPopulator(
-              ldapContextSource, null);
+          ldapContextSource, null);
       defaultAuthAutoConfiguration.setIgnorePartialResultException(true);
       defaultAuthAutoConfiguration.setSearchSubtree(true);
       LdapAuthenticationProvider ldapAuthenticationProvider = new LdapAuthenticationProvider(
-              bindAuthenticator, defaultAuthAutoConfiguration);
+          bindAuthenticator, defaultAuthAutoConfiguration);
       return ldapAuthenticationProvider;
     }
 
@@ -367,13 +382,14 @@ public class AuthConfiguration {
       http.csrf().disable();
       http.headers().frameOptions().sameOrigin();
       http.authorizeRequests()
-              .antMatchers("/openapi/**", "/vendor/**", "/styles/**", "/scripts/**", "/views/**", "/img/**").permitAll()
-              .antMatchers("/**").authenticated();
+          .antMatchers("/openapi/**", "/vendor/**", "/styles/**", "/scripts/**", "/views/**", "/img/**").permitAll()
+          .antMatchers("/**").authenticated();
       http.formLogin().loginPage("/signin").permitAll().failureUrl("/signin?#/error").and().httpBasic();
       SimpleUrlLogoutSuccessHandler urlLogoutHandler = new SimpleUrlLogoutSuccessHandler();
       urlLogoutHandler.setDefaultTargetUrl("/signin?#/logout");
-      http.logout().logoutUrl("/logout").invalidateHttpSession(true).clearAuthentication(true)
-              .logoutSuccessHandler(urlLogoutHandler);
+      // TODO 确认一下是logout还是user/logout
+      http.logout().logoutUrl("/user/logout").invalidateHttpSession(true).clearAuthentication(true)
+          .logoutSuccessHandler(urlLogoutHandler);
       http.exceptionHandling().authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint("/signin"));
     }
 
@@ -387,7 +403,7 @@ public class AuthConfiguration {
    * default profile
    */
   @Configuration
-  @ConditionalOnMissingProfile({"ctrip", "auth","ldap"})
+  @ConditionalOnMissingProfile({"ctrip", "auth", "ldap"})
   static class DefaultAuthAutoConfiguration {
 
     @Bean
@@ -415,7 +431,7 @@ public class AuthConfiguration {
     }
   }
 
-  @ConditionalOnMissingProfile("auth")
+  @ConditionalOnMissingProfile({"auth", "ldap"})
   @Configuration
   @EnableWebSecurity
   @EnableGlobalMethodSecurity(prePostEnabled = true)

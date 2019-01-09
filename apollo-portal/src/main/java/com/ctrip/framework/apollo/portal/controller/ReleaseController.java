@@ -8,27 +8,29 @@ import com.ctrip.framework.apollo.common.http.RichResponseEntity;
 import com.ctrip.framework.apollo.common.utils.RequestPrecondition;
 import com.ctrip.framework.apollo.core.enums.Env;
 import com.ctrip.framework.apollo.portal.component.PortalSettings;
+import com.ctrip.framework.apollo.common.exception.NotFoundException;
+import com.ctrip.framework.apollo.portal.component.PermissionValidator;
 import com.ctrip.framework.apollo.portal.component.config.PortalConfig;
-import com.ctrip.framework.apollo.portal.entity.model.NamespaceReleaseModel;
-import com.ctrip.framework.apollo.portal.entity.vo.EnvClusterInfo;
-import com.ctrip.framework.apollo.portal.entity.vo.ReleaseCompareResult;
 import com.ctrip.framework.apollo.portal.entity.bo.ReleaseBO;
+import com.ctrip.framework.apollo.portal.entity.model.NamespaceReleaseModel;
+import com.ctrip.framework.apollo.portal.entity.vo.ReleaseCompareResult;
 import com.ctrip.framework.apollo.portal.listener.ConfigPublishEvent;
 import com.ctrip.framework.apollo.portal.service.ClusterService;
 import com.ctrip.framework.apollo.portal.service.ReleaseService;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.CollectionUtils;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -47,9 +49,11 @@ public class ReleaseController {
   private PortalSettings portalSettings;
   @Autowired
   private ClusterService clusterService;
+  @Autowired
+  private PermissionValidator permissionValidator;
 
   @PreAuthorize(value = "@permissionValidator.hasReleaseNamespacePermission(#appId, #namespaceName, #env)")
-  @RequestMapping(value = "/apps/{appId}/envs/{env}/clusters/{clusterName}/namespaces/{namespaceName}/releases", method = RequestMethod.POST)
+  @PostMapping(value = "/apps/{appId}/envs/{env}/clusters/{clusterName}/namespaces/{namespaceName}/releases")
   public ReleaseDTO createRelease(@PathVariable String appId,
                                   @PathVariable String env, @PathVariable String clusterName,
                                   @PathVariable String namespaceName, @RequestBody NamespaceReleaseModel model) {
@@ -85,7 +89,7 @@ public class ReleaseController {
    * 由于批量同步功能是已有的，但是全环境发布功能并没有，所以这里支持了一下
    */
   @PreAuthorize(value = "@permissionValidator.hasReleaseNamespacePermission(#appId, #namespaceName)")
-  @RequestMapping(value = "/apps/{appId}/namespaces/{namespaceName}/multiReleases", method = RequestMethod.POST)
+  @PostMapping(value = "/apps/{appId}/namespaces/{namespaceName}/multiReleases")
   public MultiResponseEntity<ReleaseDTO> createMultiRelease(@PathVariable String appId,
                                                           @PathVariable String namespaceName, @RequestBody NamespaceReleaseModel model) {
     checkModel(Objects.nonNull(model));
@@ -132,8 +136,7 @@ public class ReleaseController {
   }
 
   @PreAuthorize(value = "@permissionValidator.hasReleaseNamespacePermission(#appId, #namespaceName, #env)")
-  @RequestMapping(value = "/apps/{appId}/envs/{env}/clusters/{clusterName}/namespaces/{namespaceName}/branches/{branchName}/releases",
-      method = RequestMethod.POST)
+  @PostMapping(value = "/apps/{appId}/envs/{env}/clusters/{clusterName}/namespaces/{namespaceName}/branches/{branchName}/releases")
   public ReleaseDTO createGrayRelease(@PathVariable String appId,
                                       @PathVariable String env, @PathVariable String clusterName,
                                       @PathVariable String namespaceName, @PathVariable String branchName,
@@ -165,13 +168,16 @@ public class ReleaseController {
   }
 
 
-  @RequestMapping(value = "/apps/{appId}/envs/{env}/clusters/{clusterName}/namespaces/{namespaceName}/releases/all", method = RequestMethod.GET)
+  @GetMapping(value = "/apps/{appId}/envs/{env}/clusters/{clusterName}/namespaces/{namespaceName}/releases/all")
   public List<ReleaseBO> findAllReleases(@PathVariable String appId,
                                          @PathVariable String env,
                                          @PathVariable String clusterName,
                                          @PathVariable String namespaceName,
                                          @RequestParam(defaultValue = "0") int page,
                                          @RequestParam(defaultValue = "5") int size) {
+    if (permissionValidator.shouldHideConfigToCurrentUser(appId, env, namespaceName)) {
+      return Collections.emptyList();
+    }
 
     RequestPrecondition.checkNumberPositive(size);
     RequestPrecondition.checkNumberNotNegative(page);
@@ -179,7 +185,7 @@ public class ReleaseController {
     return releaseService.findAllReleases(appId, Env.valueOf(env), clusterName, namespaceName, page, size);
   }
 
-  @RequestMapping(value = "/apps/{appId}/envs/{env}/clusters/{clusterName}/namespaces/{namespaceName}/releases/active", method = RequestMethod.GET)
+  @GetMapping(value = "/apps/{appId}/envs/{env}/clusters/{clusterName}/namespaces/{namespaceName}/releases/active")
   public List<ReleaseDTO> findActiveReleases(@PathVariable String appId,
                                              @PathVariable String env,
                                              @PathVariable String clusterName,
@@ -187,13 +193,17 @@ public class ReleaseController {
                                              @RequestParam(defaultValue = "0") int page,
                                              @RequestParam(defaultValue = "5") int size) {
 
+    if (permissionValidator.shouldHideConfigToCurrentUser(appId, env, namespaceName)) {
+      return Collections.emptyList();
+    }
+
     RequestPrecondition.checkNumberPositive(size);
     RequestPrecondition.checkNumberNotNegative(page);
 
     return releaseService.findActiveReleases(appId, Env.valueOf(env), clusterName, namespaceName, page, size);
   }
 
-  @RequestMapping(value = "/envs/{env}/releases/compare", method = RequestMethod.GET)
+  @GetMapping(value = "/envs/{env}/releases/compare")
   public ReleaseCompareResult compareRelease(@PathVariable String env,
                                              @RequestParam long baseReleaseId,
                                              @RequestParam long toCompareReleaseId) {
@@ -202,15 +212,20 @@ public class ReleaseController {
   }
 
 
-  @PreAuthorize(value = "@permissionValidator.hasReleaseNamespacePermission(#appId, #namespaceName, #env)")
-  @RequestMapping(path = "/envs/{env}/releases/{releaseId}/rollback", method = RequestMethod.PUT)
+  @PutMapping(path = "/envs/{env}/releases/{releaseId}/rollback")
   public void rollback(@PathVariable String env,
                        @PathVariable long releaseId) {
-    releaseService.rollback(Env.valueOf(env), releaseId);
     ReleaseDTO release = releaseService.findReleaseById(Env.valueOf(env), releaseId);
-    if (Objects.isNull(release)) {
-      return;
+
+    if (release == null) {
+      throw new NotFoundException("release not found");
     }
+
+    if (!permissionValidator.hasReleaseNamespacePermission(release.getAppId(), release.getNamespaceName(), env)) {
+      throw new AccessDeniedException("Access is denied");
+    }
+
+    releaseService.rollback(Env.valueOf(env), releaseId);
 
     ConfigPublishEvent event = ConfigPublishEvent.instance();
     event.withAppId(release.getAppId())
