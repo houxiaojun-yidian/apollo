@@ -3,6 +3,7 @@ spring:
     name: apollo-portal
   profiles:
     active: ${apollo_profile}
+<<<<<<< HEAD
   ldap:
     username:
     password:
@@ -16,10 +17,24 @@ ldap:
     userDisplayName:
     email:
     filterBase:
+=======
+  jpa:
+    properties:
+      hibernate:
+        query:
+          plan_cache_max_size: 192 # limit query plan cache max size
+
+>>>>>>> apollo-master/master
 server:
-  port: 8080
+  port: 8070
   compression:
+<<<<<<< HEAD
       enabled: true
+=======
+    enabled: true
+  tomcat:
+    use-relative-redirects: true
+>>>>>>> apollo-master/master
 
 logging:
   file: /opt/logs/100003173/apollo-portal.log

@@ -26,7 +26,6 @@ import com.ctrip.framework.apollo.common.dto.ReleaseDTO;
 import com.ctrip.framework.apollo.common.exception.NotFoundException;
 import com.ctrip.framework.apollo.common.utils.BeanUtils;
 import com.google.common.base.Splitter;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,16 +50,26 @@ public class ReleaseController {
   private static final Splitter RELEASES_SPLITTER = Splitter.on(",").omitEmptyStrings()
       .trimResults();
 
-  @Autowired
-  private ReleaseService releaseService;
-  @Autowired
-  private NamespaceService namespaceService;
-  @Autowired
-  private MessageSender messageSender;
-  @Autowired
-  private NamespaceBranchService namespaceBranchService;
-  @Autowired
-  private ClusterService clusterService;
+
+  private final ReleaseService releaseService;
+  private final NamespaceService namespaceService;
+  private final MessageSender messageSender;
+  private final NamespaceBranchService namespaceBranchService;
+  private final ClusterService clusterService;
+
+  public ReleaseController(
+      final ReleaseService releaseService,
+      final NamespaceService namespaceService,
+      final MessageSender messageSender,
+      final NamespaceBranchService namespaceBranchService,
+      final ClusterService clusterService) {
+    this.releaseService = releaseService;
+    this.namespaceService = namespaceService;
+    this.messageSender = messageSender;
+    this.namespaceBranchService = namespaceBranchService;
+    this.clusterService = clusterService;
+  }
+
 
   @GetMapping("/releases/{releaseId}")
   public ReleaseDTO get(@PathVariable("releaseId") long releaseId) {
