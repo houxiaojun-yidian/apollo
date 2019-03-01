@@ -21,7 +21,6 @@ import com.ctrip.framework.apollo.portal.entity.model.NamespaceGrayDelReleaseMod
 import com.ctrip.framework.apollo.portal.service.NamespaceBranchService;
 import com.ctrip.framework.apollo.portal.service.ReleaseService;
 import com.ctrip.framework.apollo.portal.spi.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -42,16 +41,24 @@ import static com.ctrip.framework.apollo.common.utils.RequestPrecondition.checkM
 @RequestMapping("/openapi/v1/envs/{env}")
 public class ReleaseController {
 
-  @Autowired
-  private ReleaseService releaseService;
-  @Autowired
-  private UserService userService;
-  @Autowired
-  private PortalSettings portalSettings;
-  @Autowired
-  private ClusterService clusterService;
-  @Autowired
-  private NamespaceBranchService namespaceBranchService;
+  private final ReleaseService releaseService;
+  private final UserService userService;
+  private final NamespaceBranchService namespaceBranchService;
+  private final PortalSettings portalSettings;
+  private final ClusterService clusterService;
+
+  public ReleaseController(
+      final ReleaseService releaseService,
+      final UserService userService,
+      final NamespaceBranchService namespaceBranchService,
+      final PortalSettings portalSettings,
+      final ClusterService clusterService) {
+    this.releaseService = releaseService;
+    this.userService = userService;
+    this.namespaceBranchService = namespaceBranchService;
+    this.portalSettings = portalSettings;
+    this.clusterService = clusterService;
+  }
 
   @PreAuthorize(value = "@consumerPermissionValidator.hasReleaseNamespacePermission(#request, #appId, #namespaceName, #env)")
   @PostMapping(value = "/apps/{appId}/clusters/{clusterName}/namespaces/{namespaceName}/releases")
@@ -60,8 +67,6 @@ public class ReleaseController {
                                       @PathVariable String namespaceName,
                                       @RequestBody NamespaceReleaseDTO model,
                                       HttpServletRequest request) {
-
-    checkModel(model != null);
     RequestPrecondition.checkArguments(!StringUtils.isContainEmpty(model.getReleasedBy(), model
             .getReleaseTitle()),
         "Params(releaseTitle and releasedBy) can not be empty");
@@ -147,7 +152,6 @@ public class ReleaseController {
                             @PathVariable String clusterName, @PathVariable String namespaceName,
                             @PathVariable String branchName, @RequestParam(value = "deleteBranch", defaultValue = "true") boolean deleteBranch,
                             @RequestBody NamespaceReleaseDTO model, HttpServletRequest request) {
-        checkModel(model != null);
         RequestPrecondition.checkArguments(!StringUtils.isContainEmpty(model.getReleasedBy(), model
                         .getReleaseTitle()),
                 "Params(releaseTitle and releasedBy) can not be empty");
@@ -170,7 +174,6 @@ public class ReleaseController {
                                         @PathVariable String namespaceName, @PathVariable String branchName,
                                         @RequestBody NamespaceReleaseDTO model,
                                         HttpServletRequest request) {
-        checkModel(model != null);
         RequestPrecondition.checkArguments(!StringUtils.isContainEmpty(model.getReleasedBy(), model
                         .getReleaseTitle()),
                 "Params(releaseTitle and releasedBy) can not be empty");
@@ -196,8 +199,6 @@ public class ReleaseController {
                                                @PathVariable String namespaceName, @PathVariable String branchName,
                                                @RequestBody NamespaceGrayDelReleaseDTO model,
                                                HttpServletRequest request) {
-
-        checkModel(model != null);
         RequestPrecondition.checkArguments(!StringUtils.isContainEmpty(model.getReleasedBy(), model
                         .getReleaseTitle()),
                 "Params(releaseTitle and releasedBy) can not be empty");

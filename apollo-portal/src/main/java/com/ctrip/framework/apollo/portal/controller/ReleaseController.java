@@ -17,11 +17,14 @@ import com.ctrip.framework.apollo.portal.entity.vo.ReleaseCompareResult;
 import com.ctrip.framework.apollo.portal.listener.ConfigPublishEvent;
 import com.ctrip.framework.apollo.portal.service.ClusterService;
 import com.ctrip.framework.apollo.portal.service.ReleaseService;
-import org.springframework.beans.factory.annotation.Autowired;
+import javax.validation.Valid;
+import javax.validation.constraints.Positive;
+import javax.validation.constraints.PositiveOrZero;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.CollectionUtils;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -36,29 +39,37 @@ import java.util.Objects;
 
 import static com.ctrip.framework.apollo.common.utils.RequestPrecondition.checkModel;
 
+@Validated
 @RestController
 public class ReleaseController {
 
-  @Autowired
-  private ReleaseService releaseService;
-  @Autowired
-  private ApplicationEventPublisher publisher;
-  @Autowired
-  private PortalConfig portalConfig;
-  @Autowired
-  private PortalSettings portalSettings;
-  @Autowired
-  private ClusterService clusterService;
-  @Autowired
-  private PermissionValidator permissionValidator;
+  private final ReleaseService releaseService;
+  private final ApplicationEventPublisher publisher;
+  private final PortalConfig portalConfig;
+  private final PermissionValidator permissionValidator;
+  private final PortalSettings portalSettings;
+  private final ClusterService clusterService;
+
+  public ReleaseController(
+      final ReleaseService releaseService,
+      final ApplicationEventPublisher publisher,
+      final PortalConfig portalConfig,
+      final PermissionValidator permissionValidator,
+      final PortalSettings portalSettings,
+      final ClusterService clusterService) {
+    this.releaseService = releaseService;
+    this.publisher = publisher;
+    this.portalConfig = portalConfig;
+    this.permissionValidator = permissionValidator;
+    this.portalSettings = portalSettings;
+    this.clusterService = clusterService;
+  }
 
   @PreAuthorize(value = "@permissionValidator.hasReleaseNamespacePermission(#appId, #namespaceName, #env)")
   @PostMapping(value = "/apps/{appId}/envs/{env}/clusters/{clusterName}/namespaces/{namespaceName}/releases")
   public ReleaseDTO createRelease(@PathVariable String appId,
                                   @PathVariable String env, @PathVariable String clusterName,
                                   @PathVariable String namespaceName, @RequestBody NamespaceReleaseModel model) {
-
-    checkModel(Objects.nonNull(model));
     model.setAppId(appId);
     model.setEnv(env);
     model.setClusterName(clusterName);
@@ -141,8 +152,6 @@ public class ReleaseController {
                                       @PathVariable String env, @PathVariable String clusterName,
                                       @PathVariable String namespaceName, @PathVariable String branchName,
                                       @RequestBody NamespaceReleaseModel model) {
-
-    checkModel(Objects.nonNull(model));
     model.setAppId(appId);
     model.setEnv(env);
     model.setClusterName(branchName);
@@ -173,14 +182,11 @@ public class ReleaseController {
                                          @PathVariable String env,
                                          @PathVariable String clusterName,
                                          @PathVariable String namespaceName,
-                                         @RequestParam(defaultValue = "0") int page,
-                                         @RequestParam(defaultValue = "5") int size) {
+                                         @Valid @PositiveOrZero(message = "page should be positive or 0") @RequestParam(defaultValue = "0") int page,
+                                         @Valid @Positive(message = "size should be positive number") @RequestParam(defaultValue = "5") int size) {
     if (permissionValidator.shouldHideConfigToCurrentUser(appId, env, namespaceName)) {
       return Collections.emptyList();
     }
-
-    RequestPrecondition.checkNumberPositive(size);
-    RequestPrecondition.checkNumberNotNegative(page);
 
     return releaseService.findAllReleases(appId, Env.valueOf(env), clusterName, namespaceName, page, size);
   }
@@ -190,15 +196,12 @@ public class ReleaseController {
                                              @PathVariable String env,
                                              @PathVariable String clusterName,
                                              @PathVariable String namespaceName,
-                                             @RequestParam(defaultValue = "0") int page,
-                                             @RequestParam(defaultValue = "5") int size) {
+                                             @Valid @PositiveOrZero(message = "page should be positive or 0") @RequestParam(defaultValue = "0") int page,
+                                             @Valid @Positive(message = "size should be positive number") @RequestParam(defaultValue = "5") int size) {
 
     if (permissionValidator.shouldHideConfigToCurrentUser(appId, env, namespaceName)) {
       return Collections.emptyList();
     }
-
-    RequestPrecondition.checkNumberPositive(size);
-    RequestPrecondition.checkNumberNotNegative(page);
 
     return releaseService.findActiveReleases(appId, Env.valueOf(env), clusterName, namespaceName, page, size);
   }
